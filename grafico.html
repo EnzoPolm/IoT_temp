@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleccionar Fecha</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.6/flatpickr.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            text-align: center;
+            margin-top: 20px;
+        }
+        label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        input[type="text"] {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+        button[type="submit"] {
+            padding: 8px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        #chartContainer {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        #grafico {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Condiciones ambientales del CPD de TractionX</h1>
+    <form id="fechaForm" onsubmit="mostrarGrafico(); return false;">
+        <label for="fecha">Selecciona una fecha:</label>
+        <input type="text" id="fecha" name="fecha" placeholder="Seleccionar fecha" required>
+        <button type="submit">Mostrar gráfico</button>
+    </form>
+
+    <div id="chartContainer">
+        <div id="grafico">
+            <canvas id="iotChart" width="800" height="400"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.6/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        flatpickr("#fecha", {
+            dateFormat: "Y-m-d",
+            enableTime: false,
+            altInput: true,
+            altFormat: "d/m/Y",
+        });
+
+        function mostrarGrafico() {
+            var fecha = document.getElementById("fecha").value;
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (this.readyState === 4 && this.status === 200) {
+                    var data = JSON.parse(this.responseText);
+                    crearGrafico(data);
+                }
+            };
+            xhr.open("GET", "/grafico?fecha=" + fecha, true);
+            xhr.send();
+        }
+
+        function crearGrafico(data) {
+            var labels = data.labels;
+            var temperatures = data.temperaturas;
+            var humidities = data.humedades;
+
+            var ctx = document.getElementById('iotChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperatura (°C)',
+                        borderColor: '#3352de', // Rojo claro
+                        backgroundColor: '#3352de', // Rojo claro
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        data: temperatures,
+                        yAxisID: 'y-axis-1',
+                        fill: false,
+                    }, {
+                        label: 'Humedad (%)',
+                        borderColor: '#ff3333', // Azul claro
+                        backgroundColor: '#ff3333', // Azul claro
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        data: humidities,
+                        yAxisID: 'y-axis-2',
+                        fill: false,
+                    }]
+                },
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm',
+                                }
+                            },
+                            ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 24,
+                            },
+                            display: true,
+                        }],
+                        yAxes: [{
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            id: 'y-axis-1',
+                        }, {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            id: 'y-axis-2',
+                            gridLines: {
+                                drawOnChartArea: false,
+                            },
+                        }],
+                    },
+                }
+            });
+
+            document.getElementById("grafico").style.display = "block";
+        }
+    </script>
+</body>
+</html>
